@@ -1,0 +1,11 @@
+[package]
+name = "gbemu"
+version = "0.1.0"
+authors = ["griffi-gh <prasol258@gmail.com>"]
+edition = "2018"
+
+[profile.dev]
+opt-level = 1
+
+[dependencies]
+#sfml = "0.15.1"
