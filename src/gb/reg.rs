@@ -70,15 +70,15 @@ impl Registers {
 	}
 
 	pub fn get_af(&self) -> u16 {
-		((self.a as u16) << 8) + (self.get_f() as u16)
+		u16::from_be_bytes([self.a, self.get_f()])
 	}
 	pub fn get_bc(&self) -> u16 {
-		((self.b as u16) << 8) + (self.c as u16)
+		u16::from_be_bytes([self.b, self.c])
 	}
 	pub fn get_de(&self) -> u16 {
-		((self.d as u16) << 8) + (self.e as u16)
+		u16::from_be_bytes([self.d, self.e])
 	}
 	pub fn get_hl(&self) -> u16 {
-		((self.h as u16) << 8) + (self.l as u16)
+		u16::from_be_bytes([self.h, self.l])
 	}
 }
