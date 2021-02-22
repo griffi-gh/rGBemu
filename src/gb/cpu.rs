@@ -7,6 +7,7 @@ use crate::gb::{
 pub struct Cpu{
 	pub reg: Registers,
 }
+
 impl Cpu {
 	pub fn new() -> Self {
 		Self {
@@ -33,14 +34,14 @@ impl Cpu {
 	}
 	
 	fn read_byte(&mut self, mem: &Memory) -> u8 {
-		let value = mem.read(self.reg.pc);
-		self.reg.pc += 1;
+		let value: u8 = mem.read(self.reg.pc);
+		self.reg.pc = self.reg.pc.wrapping_add(1);
 		value
 	}
 	fn read_word(&mut self, mem: &Memory) -> u16 {
-		let h = self.read_byte(mem) as u16;
-		let l = self.read_byte(mem) as u16;
-		h + (l << 8)
+		let h: u8 = self.read_byte(mem);
+		let l: u8 = self.read_byte(mem);
+		u16::from_be_bytes([l,h])
 	}
 
 	pub fn step(&mut self, mem: &mut Memory) -> i8 {
@@ -89,6 +90,47 @@ impl Cpu {
 			0x12 => {
 				//LD (DE),A
 				mem.write(self.reg.get_de(), self.reg.a);
+				8
+			}
+			0x22 => {
+				//LD (HL+),A
+				let hl: u16 = self.reg.get_hl();
+				mem.write(hl, self.reg.a);
+				self.reg.set_hl(hl.wrapping_add(1));
+				8
+			}
+			0x32 => {
+				//LD (HL-),A
+				let hl: u16 = self.reg.get_hl();
+				mem.write(hl, self.reg.a);
+				self.reg.set_hl(hl.wrapping_sub(1));
+				8
+			}
+
+			// LD A,(rr)
+
+			0x0A => {
+				//LD A,(BC)
+				self.reg.a = mem.read(self.reg.get_hl());
+				8
+			}
+			0x1A => {
+				//LD A,(DE)
+				self.reg.a = mem.read(self.reg.get_de());
+				8
+			}
+			0x2A => {
+				//LD A,(HL+)
+				let hl: u16 = self.reg.get_hl();
+				self.reg.a = mem.read(hl);
+				self.reg.set_hl(hl.wrapping_add(1));
+				8
+			}
+			0x3A => {
+				//LD A,(HL-)
+				let hl: u16 = self.reg.get_hl();
+				self.reg.a = mem.read(hl);
+				self.reg.set_hl(hl.wrapping_sub(1));
 				8
 			}
 
@@ -198,7 +240,7 @@ impl Cpu {
 				4
 			}
 
-			// DEC r
+			// DEC u8
 			
 			0x05 => {
 				//DEC B
@@ -257,6 +299,51 @@ impl Cpu {
 				self.reg.a = v;
 				4
 			}
+			
+			// LD r,u8
+
+			0x06 => {
+				//LD B,u8
+				self.reg.b = self.read_byte(mem);
+				8
+			}
+			0x0E => {
+				//LD B,u8
+				self.reg.c = self.read_byte(mem);
+				8
+			}
+			0x16 => {
+				//LD D,u8
+				self.reg.d = self.read_byte(mem);
+				8
+			}
+			0x1E => {
+				//LD E,u8
+				self.reg.e = self.read_byte(mem);
+				8
+			}
+			0x26 => {
+				//LD H,u8
+				self.reg.h = self.read_byte(mem);
+				8
+			}
+			0x2E => {
+				//LD L,u8
+				self.reg.l = self.read_byte(mem);
+				8
+			}
+			0x36 => {
+				//LD (HL),u8
+				mem.write(self.reg.get_hl(), self.read_byte(mem));
+				8
+			}
+			0x3E => {
+				//LD A,u8
+				self.reg.a = self.read_byte(mem);
+				8
+			}
+
+
 
 			_ => {
 				panic!("Opcode not implemented: 0x{:X}", op)
