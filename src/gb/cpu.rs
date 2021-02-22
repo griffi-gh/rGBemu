@@ -388,12 +388,29 @@ impl Cpu {
 				4
 			}
 
+			0x40..=0x75 | 0x77..=0x7F => {
+				unimplemented!();
+				let from = op & 7;
+				let to = (op & 0x38) >> 3;
+				let v: u8 = match from {
+					0 => self.reg.b,
+					1 => self.reg.c,
+					2 => self.reg.d,
+					3 => self.reg.e,
+					4 => self.reg.h,
+					5 => self.reg.l,
+					6 => mem.read(self.reg.get_hl()),
+					_ => { panic!(); }
+				};
+				4
+			}
+
 			0xCB => {
 				let cb_op = self.read_byte(mem);
 				match cb_op {
 					0x40..=0xFF => {
 						let h: u8 = (cb_op & 0xC0) >> 6; // type of bit op
-						let r: u8 = cb_op & 7;			 // register
+						let r: u8 = cb_op & 7;			 	// register
 						let b: u8 = (cb_op & 0x38) >> 3; // bit
 						match h {
 							1 => {
