@@ -1,6 +1,7 @@
 use crate::gb::{
 	mem::Memory,
 	reg::Registers,
+	util
 };
 
 #[derive(Debug)]
@@ -131,6 +132,49 @@ impl Cpu {
 				let hl: u16 = self.reg.get_hl();
 				self.reg.a = mem.read(hl);
 				self.reg.set_hl(hl.wrapping_sub(1));
+				8
+			}
+
+			// LD r,u8
+
+			0x06 => {
+				//LD B,u8
+				self.reg.b = self.read_byte(mem);
+				8
+			}
+			0x0E => {
+				//LD B,u8
+				self.reg.c = self.read_byte(mem);
+				8
+			}
+			0x16 => {
+				//LD D,u8
+				self.reg.d = self.read_byte(mem);
+				8
+			}
+			0x1E => {
+				//LD E,u8
+				self.reg.e = self.read_byte(mem);
+				8
+			}
+			0x26 => {
+				//LD H,u8
+				self.reg.h = self.read_byte(mem);
+				8
+			}
+			0x2E => {
+				//LD L,u8
+				self.reg.l = self.read_byte(mem);
+				8
+			}
+			0x36 => {
+				//LD (HL),u8
+				mem.write(self.reg.get_hl(), self.read_byte(mem));
+				8
+			}
+			0x3E => {
+				//LD A,u8
+				self.reg.a = self.read_byte(mem);
 				8
 			}
 
@@ -300,53 +344,101 @@ impl Cpu {
 				4
 			}
 			
-			// LD r,u8
+			// JP
+			0xC3 => {
+				//JP u16
+				self.reg.pc = self.read_word(mem);
+				16
+			}
+			0xC4 => {
+				//JP NZ,u16
+				let to = self.read_word(mem);
+				if !self.reg.f.z {
+					self.reg.pc = to;
+					24
+				} else { 12 }
+			}
+			0xD4 => {
+				//JP NC,u16
+				let to = self.read_word(mem);
+				if !self.reg.f.c {
+					self.reg.pc = to;
+					24
+				} else { 12 }
+			}
+			0xCA => {
+				//JP Z,u16
+				let to = self.read_word(mem);
+				if self.reg.f.z {
+					self.reg.pc = to;
+					24
+				} else { 12 }
+			}
+			0xDA => {
+				//JP C,u16
+				let to = self.read_word(mem);
+				if self.reg.f.c {
+					self.reg.pc = to;
+					24
+				} else { 12 }
+			}
+			0xE9 => {
+				//JP HL
+				self.reg.pc = self.reg.get_hl();
+				4
+			}
 
-			0x06 => {
-				//LD B,u8
-				self.reg.b = self.read_byte(mem);
-				8
-			}
-			0x0E => {
-				//LD B,u8
-				self.reg.c = self.read_byte(mem);
-				8
-			}
-			0x16 => {
-				//LD D,u8
-				self.reg.d = self.read_byte(mem);
-				8
-			}
-			0x1E => {
-				//LD E,u8
-				self.reg.e = self.read_byte(mem);
-				8
-			}
-			0x26 => {
-				//LD H,u8
-				self.reg.h = self.read_byte(mem);
-				8
-			}
-			0x2E => {
-				//LD L,u8
-				self.reg.l = self.read_byte(mem);
-				8
-			}
-			0x36 => {
-				//LD (HL),u8
-				mem.write(self.reg.get_hl(), self.read_byte(mem));
-				8
-			}
-			0x3E => {
-				//LD A,u8
-				self.reg.a = self.read_byte(mem);
-				8
-			}
+			0xCB => {
+				let cb_op = self.read_byte(mem);
+				match cb_op {
+					0x40..=0xFF => {
+						let h: u8 = (cb_op & 0xC0) >> 6; // type of bit op
+						let r: u8 = cb_op & 7;			 // register
+						let b: u8 = (cb_op & 0x38) >> 3; // bit
+						match h {
+							1 => {
+								// BIT
+								self.reg.f.n = false;
+								self.reg.f.h = true;
+								match r {
+									0 => { self.reg.f.z = !util::get_bit(self.reg.b, b); 8 }
+									1 => { self.reg.f.z = !util::get_bit(self.reg.c, b); 8 }
+									2 => { self.reg.f.z = !util::get_bit(self.reg.d, b); 8 }
+									3 => { self.reg.f.z = !util::get_bit(self.reg.e, b); 8 }
+									4 => { self.reg.f.z = !util::get_bit(self.reg.h, b); 8 }
+									5 => { self.reg.f.z = !util::get_bit(self.reg.l, b); 8 }
+									6 => { self.reg.f.z = !util::get_bit(mem.read(self.reg.get_hl()), b); 16 }
+									7 => { self.reg.f.z = !util::get_bit(self.reg.a, b); 8 }
+									_ => { panic!(); }
+								}
+							}
+							2 | 3 => {
+								//RES, SET
+								let v = h==3;
+								match r {
+									0 => { util::set_bit(self.reg.b, b, v); 8 }
+									1 => { util::set_bit(self.reg.c, b, v); 8 }
+									2 => { util::set_bit(self.reg.d, b, v); 8 }
+									3 => { util::set_bit(self.reg.e, b, v); 8 }
+									4 => { util::set_bit(self.reg.h, b, v); 8 }
+									5 => { util::set_bit(self.reg.l, b, v); 8 }
+									6 => { let a = self.reg.get_hl(); mem.write(a, util::set_bit(mem.read(a), b, v)); 16 }
+									7 => { util::set_bit(self.reg.a, b, v); 8 }
+									_ => { panic!(); }
+								}
+							}
+							_ => { panic!(); }
+						}
+					}
 
-
+					_ => {
+						panic!("Opcode not implemented: CB {:X}", op)
+					}
+				}
+			}
 
 			_ => {
-				panic!("Opcode not implemented: 0x{:X}", op)
+				panic!("Opcode not implemented: {:X}", op)
 			}
 		}
 	}

@@ -32,7 +32,7 @@ impl Memory {
 			0x8000..=0x9FFF => { self.vram[(addr-0x8000) as usize] = value },
 			0xA000..=0xBFFF => { self.wram[(addr-0xA000) as usize] = value },
 			0xE000..=0xFDFF => { self.wram[(addr-0xE000) as usize] = value },
-			0xFF80..=0xFFFE => { self.hram[(addr-0xFF80) as usize] = value }, 
+			0xFF80..=0xFFFE => { self.hram[(addr-0xFF80) as usize] = value },
 			_ => { }
 		}
 	}
