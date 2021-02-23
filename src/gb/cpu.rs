@@ -389,20 +389,33 @@ impl Cpu {
 			}
 
 			0x40..=0x75 | 0x77..=0x7F => {
-				unimplemented!();
-				let from = op & 7;
-				let to = (op & 0x38) >> 3;
-				let v: u8 = match from {
-					0 => self.reg.b,
-					1 => self.reg.c,
-					2 => self.reg.d,
-					3 => self.reg.e,
-					4 => self.reg.h,
-					5 => self.reg.l,
-					6 => mem.read(self.reg.get_hl()),
+				//LD r,r
+				let from = op & 0x7;
+				let to = (op >> 3) & 0x7;
+				let mut t = 4;
+				let v: u8;
+				match from {
+					0 => { v = self.reg.b; },
+					1 => { v = self.reg.c; },
+					2 => { v = self.reg.d; },
+					3 => { v = self.reg.e; },
+					4 => { v = self.reg.h; },
+					5 => { v = self.reg.l; },
+					6 => { v = mem.read(self.reg.get_hl()); t = 8; },
+					7 => { v = self.reg.a; }
 					_ => { panic!(); }
 				};
-				4
+				match to {
+					0 => { self.reg.b = v; t }
+					1 => { self.reg.c = v; t }
+					2 => { self.reg.d = v; t }
+					3 => { self.reg.e = v; t }
+					4 => { self.reg.h = v; t }
+					5 => { self.reg.l = v; t }
+					6 => { mem.write(self.reg.get_hl(), v); 8 }
+					7 => { self.reg.a = v; t }
+					_ => { panic!(); }
+				}
 			}
 
 			0xCB => {
