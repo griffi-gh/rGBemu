@@ -17,6 +17,7 @@ impl Gameboy {
 		}
 	}
 	pub fn step(&mut self) {
+		println!("op: {:X} at: {:X}", self.mem.read(self.cpu.reg.pc), self.cpu.reg.pc);
 		self.cpu.step(&mut self.mem);
 	}
 }

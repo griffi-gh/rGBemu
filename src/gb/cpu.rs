@@ -49,8 +49,8 @@ impl Cpu {
 		let op = self.read_byte(mem);
 		self.exec(op, mem)
 	}
+
 	fn exec(&mut self, op: u8, mem: &mut Memory) -> i8 {
-		//let reg = &mut self.reg;
 		match op {
 			0x00 => {
 				//NOP
@@ -342,6 +342,52 @@ impl Cpu {
 				self.set_flags_sub(v,1);
 				self.reg.a = v;
 				4
+			}
+
+			// (OP) A, u8
+			// TODO ADC,SBC,CP
+			0xC6 => {
+				//ADD A,u8
+				let v = self.read_byte(mem);
+				self.set_flags_add(self.reg.a, v);
+				self.set_carry_add(self.reg.a, v);
+				self.reg.a = self.reg.a.wrapping_add(v);
+				8
+			}
+			0xD6 => {
+				//SUB A,u8
+				let v = self.read_byte(mem);
+				self.set_flags_sub(self.reg.a, v);
+				self.set_carry_sub(self.reg.a, v);
+				self.reg.a = self.reg.a.wrapping_sub(v);
+				8
+			}
+			0xE6 => {
+				//AND A,u8
+				self.reg.a &= self.read_byte(mem);
+				self.reg.f.z = self.reg.a==0;
+				self.reg.f.h = true;
+				self.reg.f.c = false;
+				self.reg.f.n = false;
+				8
+			}
+			0xF6 => {
+				//OR A,u8
+				self.reg.a |= self.read_byte(mem);
+				self.reg.f.z = self.reg.a==0;
+				self.reg.f.h = false;
+				self.reg.f.c = false;
+				self.reg.f.n = false;
+				8
+			}
+			0xEE => {
+				//XOR A,u8
+				self.reg.a ^= self.read_byte(mem);
+				self.reg.f.z = self.reg.a==0;
+				self.reg.f.h = false;
+				self.reg.f.c = false;
+				self.reg.f.n = false;
+				8
 			}
 			
 			// JP

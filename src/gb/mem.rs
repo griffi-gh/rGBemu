@@ -15,6 +15,7 @@ impl Memory {
 			hram: [0; 0x007F],
 		}
 	}
+
 	pub fn read(&self, addr: u16) -> u8 {
 		//println!("READ 0x{:X}", addr);
 		match addr {
@@ -34,6 +35,17 @@ impl Memory {
 			0xE000..=0xFDFF => { self.wram[(addr-0xE000) as usize] = value },
 			0xFF80..=0xFFFE => { self.hram[(addr-0xFF80) as usize] = value },
 			_ => { }
+		}
+	}
+
+	pub fn load_rom(&mut self, file: &String) {
+		// If ROM is too big the emulator will crash)
+		let f = std::fs::read(file).unwrap();
+		for (i, v) in f.iter().enumerate() {
+			if i>=self.rom.len() {
+				break;
+			}
+			self.rom[i] = *v;
 		}
 	}
 }
