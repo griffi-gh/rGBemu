@@ -492,14 +492,14 @@ impl Cpu {
 								//RES, SET
 								let v = h==3;
 								match r {
-									0 => { util::set_bit(self.reg.b, b, v); 8 }
-									1 => { util::set_bit(self.reg.c, b, v); 8 }
-									2 => { util::set_bit(self.reg.d, b, v); 8 }
-									3 => { util::set_bit(self.reg.e, b, v); 8 }
-									4 => { util::set_bit(self.reg.h, b, v); 8 }
-									5 => { util::set_bit(self.reg.l, b, v); 8 }
+									0 => { self.reg.b = util::set_bit(self.reg.b, b, v); 8 }
+									1 => { self.reg.c = util::set_bit(self.reg.c, b, v); 8 }
+									2 => { self.reg.d = util::set_bit(self.reg.d, b, v); 8 }
+									3 => { self.reg.e = util::set_bit(self.reg.e, b, v); 8 }
+									4 => { self.reg.h = util::set_bit(self.reg.h, b, v); 8 }
+									5 => { self.reg.l = util::set_bit(self.reg.l, b, v); 8 }
 									6 => { let a = self.reg.get_hl(); mem.write(a, util::set_bit(mem.read(a), b, v)); 16 }
-									7 => { util::set_bit(self.reg.a, b, v); 8 }
+									7 => { self.reg.a = util::set_bit(self.reg.a, b, v); 8 }
 									_ => { panic!(); }
 								}
 							}
