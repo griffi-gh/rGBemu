@@ -178,6 +178,17 @@ impl Cpu {
 				8
 			}
 
+			0xE0 => {
+				//LD (FF00+u8),A
+				mem.write(0xFF00 + (self.read_byte(mem) as u16), self.reg.a);
+				12
+			}
+			0xD0 => {
+				//LD A,(FF00+u8)
+				self.reg.a = mem.read(0xFF00 + (self.read_byte(mem) as u16));
+				12
+			}
+
 			// INC rr
 
 			0x03 => {
