@@ -205,22 +205,22 @@ impl Cpu {
 
 			0x0B => {
 				//DEC BC
-				self.reg.set_bc(self.reg.get_bc().wrapping_add(1));
+				self.reg.set_bc(self.reg.get_bc().wrapping_sub(1));
 				8
 			}
 			0x1B => {
 				//DEC DE
-				self.reg.set_de(self.reg.get_de().wrapping_add(1));
+				self.reg.set_de(self.reg.get_de().wrapping_sub(1));
 				8
 			}
 			0x2B => {
 				//DEC HL
-				self.reg.set_hl(self.reg.get_hl().wrapping_add(1));
+				self.reg.set_hl(self.reg.get_hl().wrapping_sub(1));
 				8
 			}
 			0x3B => {
 				//DEC SP
-				self.reg.sp = self.reg.sp.wrapping_add(1);
+				self.reg.sp = self.reg.sp.wrapping_sub(1);
 				8
 			}
 
