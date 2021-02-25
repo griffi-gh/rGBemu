@@ -473,6 +473,47 @@ impl Cpu {
 				4
 			}
 
+			// JR
+
+			0x18 => {
+				//JR i8
+				let o = util::to_signed(self.read_byte(mem));
+				self.reg.pc = util::u16_offset(self.reg.pc, o);
+				12
+			}
+			0x20 => {
+				//JR NZ,i8
+				let o = util::to_signed(self.read_byte(mem));
+				if !self.reg.f.z {
+					self.reg.pc = util::u16_offset(self.reg.pc, o);
+					12
+				} else { 8 }
+			}
+			0x30 => {
+				//JR NC,i8
+				let o = util::to_signed(self.read_byte(mem));
+				if !self.reg.f.c {
+					self.reg.pc = util::u16_offset(self.reg.pc, o);
+					12
+				} else { 8 }
+			}
+			0x28 => {
+				//JR Z,i8
+				let o = util::to_signed(self.read_byte(mem));
+				if self.reg.f.z {
+					self.reg.pc = util::u16_offset(self.reg.pc, o);
+					12
+				} else { 8 }
+			}
+			0x38 => {
+				//JR C,i8
+				let o = util::to_signed(self.read_byte(mem));
+				if self.reg.f.c {
+					self.reg.pc = util::u16_offset(self.reg.pc, o);
+					12
+				} else { 8 }
+			}
+
 			//CALL
 
 			0xCD => {

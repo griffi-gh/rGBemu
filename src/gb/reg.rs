@@ -33,7 +33,7 @@ impl Registers {
 			f: Flags{..Default::default()},
 			h: 0,
 			l: 0,
-			pc: 0,
+			pc: 0x0100,
 			sp: 0xFFFE,
 		}
 	}
