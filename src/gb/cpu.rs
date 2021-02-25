@@ -21,7 +21,7 @@ impl Cpu {
 	}
 	fn set_flags_add(&mut self, v: u8, a: u8) {
 		self.reg.f.z = v == 0;
-		self.reg.f.h = ((v & 0xF) + (a & 0xF)) > 0xF;
+		self.reg.f.h = ((i16::from(v) & 0xF) + (i16::from(a) & 0xF)) > 0xF;
 		self.reg.f.n = false;
 	}
 
@@ -30,7 +30,7 @@ impl Cpu {
 	}
 	fn set_flags_sub(&mut self, v: u8, a: u8) {
 		self.reg.f.z = v == 0;
-		self.reg.f.h = ((v & 0xF) - (a & 0xF)) > 0xF;
+		self.reg.f.h = ((i16::from(v) & 0xF) - (i16::from(a) & 0xF)) < 0x0;
 		self.reg.f.n = true;
 	}
 	
