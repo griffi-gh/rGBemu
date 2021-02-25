@@ -58,10 +58,19 @@ impl Cpu {
 		self.push_byte(mem, b[0]);
 		self.push_byte(mem, b[1]);
 	}
-	fn pop_word(&mut self, mem: &mut Memory) -> u16 {
+	fn pop_word(&mut self, mem: &Memory) -> u16 {
 		let h = self.pop_byte(mem);
 		let l = self.pop_byte(mem);
 		u16::from_be_bytes([l,h])
+	}
+
+	fn call(&mut self, mem: &mut Memory, addr: u16) {
+		self.push_word(mem, self.reg.pc);
+		self.reg.pc = addr;
+	}
+	fn ret(&mut self, mem: &mut Memory) {
+		let addr = self.pop_word(mem);
+		self.reg.pc = addr;
 	}
 
 	pub fn step(&mut self, mem: &mut Memory) -> i8 {
@@ -202,7 +211,7 @@ impl Cpu {
 				mem.write(0xFF00 + (self.read_byte(mem) as u16), self.reg.a);
 				12
 			}
-			0xD0 => {
+			0xF0 => {
 				//LD A,(FF00+u8)
 				self.reg.a = mem.read(0xFF00 + (self.read_byte(mem) as u16));
 				12
@@ -426,7 +435,7 @@ impl Cpu {
 				self.reg.pc = self.read_word(mem);
 				16
 			}
-			0xC4 => {
+			0xC2 => {
 				//JP NZ,u16
 				let to = self.read_word(mem);
 				if !self.reg.f.z {
@@ -434,7 +443,7 @@ impl Cpu {
 					24
 				} else { 12 }
 			}
-			0xD4 => {
+			0xD2 => {
 				//JP NC,u16
 				let to = self.read_word(mem);
 				if !self.reg.f.c {
@@ -462,6 +471,132 @@ impl Cpu {
 				//JP HL
 				self.reg.pc = self.reg.get_hl();
 				4
+			}
+
+			//CALL
+
+			0xCD => {
+				//CALL u16
+				let to = self.read_word(mem);
+				self.call(mem, to);
+				24
+			}
+			0xC4 => {
+				//CALL NZ, u16
+				let to = self.read_word(mem);
+				if !self.reg.f.z {
+					self.call(mem, to);
+					24
+				} else { 12 }
+			}
+			0xD4 => {
+				//CALL NC, u16
+				let to = self.read_word(mem);
+				if !self.reg.f.c {
+					self.call(mem, to);
+					24
+				} else { 12 }
+			}
+			0xCC => {
+				//CALL Z, u16
+				let to = self.read_word(mem);
+				if self.reg.f.z {
+					self.call(mem, to);
+					24
+				} else { 12 }
+			}
+			0xDC => {
+				//CALL C, u16
+				let to = self.read_word(mem);
+				if self.reg.f.c {
+					self.call(mem, to);
+					24
+				} else { 12 }
+			}
+
+			// RET
+
+			0xC9 => {
+				//RET
+				self.ret(mem);
+				16
+			}
+			0xC0 => {
+				//RET NZ
+				if !self.reg.f.z {
+					self.ret(mem);
+					20
+				} else { 8 }
+			}
+			0xD0 => {
+				//RET NC
+				if !self.reg.f.c {
+					self.ret(mem);
+					20
+				} else { 8 }
+			}
+			0xC8 => {
+				//RET Z
+				if self.reg.f.z {
+					self.ret(mem);
+					20
+				} else { 8 }
+			}
+			0xD8 => {
+				//RET C
+				if self.reg.f.c {
+					self.ret(mem);
+					20
+				} else { 8 }
+			}
+			
+			// PUSH r16
+			0xC5 => {
+				//PUSH BC
+				self.push_word(mem, self.reg.get_bc());
+				16
+			}
+			0xD5 => {
+				//PUSH DE
+				self.push_word(mem, self.reg.get_de());
+				16
+			}
+			0xE5 => {
+				//PUSH HL
+				self.push_word(mem, self.reg.get_hl());
+				16
+			}
+			0xF5 => {
+				//PUSH AF
+				self.push_word(mem, self.reg.get_af());
+				16
+			}
+
+			//POP r16
+
+			0xC1 => {
+				//POP BC
+				let v = self.pop_word(mem);
+				self.reg.set_bc(v);
+				12
+			}
+			0xD1 => {
+				//POP DE
+				let v = self.pop_word(mem);
+				self.reg.set_de(v);
+				12
+			}
+			0xE1 => {
+				//POP HL
+				let v = self.pop_word(mem);
+				self.reg.set_hl(v);
+				12
+			}
+			0xF1 => {
+				//POP AF
+				let v = self.pop_word(mem);
+				self.reg.set_af(v);
+				12
 			}
 
 			0x80..=0xBF => {

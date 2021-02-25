@@ -53,6 +53,11 @@ impl Registers {
 		value
 	}
 
+	pub fn set_af(&mut self, value: u16) {
+		let b = value.to_be_bytes();
+		self.a = b[0];
+		self.set_f(b[1]);
+	}
 	pub fn set_bc(&mut self, value: u16) {
 		let b = value.to_be_bytes();
 		self.b = b[0];
