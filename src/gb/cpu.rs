@@ -445,6 +445,67 @@ impl Cpu {
 				4
 			}
 
+			0x80..=0xBF => {
+				// (OP) A,r8
+				let reg = op & 0x7;
+				let aop = (op >> 3) & 0x7;
+				let mut t = 4;
+				let val = match reg {
+					0 => self.reg.b,
+					1 => self.reg.c,
+					2 => self.reg.d,
+					3 => self.reg.e,
+					4 => self.reg.h,
+					5 => self.reg.l,
+					6 => { t = 8; mem.read(self.reg.get_hl()) },
+					7 => self.reg.a,
+					_ => { unreachable!(); }
+				};
+				match aop {
+					0 => {
+						// ADD
+						self.set_flags_add(self.reg.a, val);
+						self.set_carry_add(self.reg.a, val);
+						self.reg.a = self.reg.a.wrapping_add(val);
+					}
+					1 => { unimplemented!(); }
+					2 => {
+						// SUB
+						self.set_flags_sub(self.reg.a, val);
+						self.set_flags_sub(self.reg.a, val);
+						self.reg.a = self.reg.a.wrapping_sub(val);
+					}
+					3 => { unimplemented!(); }
+					4 => {
+						// AND
+						self.reg.a &= val;
+						self.reg.f.z = self.reg.a==0;
+						self.reg.f.n = false;
+						self.reg.f.h = true;
+						self.reg.f.c = false;
+					}
+					5 => {
+						// XOR
+						self.reg.a ^= val;
+						self.reg.f.z = self.reg.a==0;
+						self.reg.f.n = false;
+						self.reg.f.h = false;
+						self.reg.f.c = false;
+					}
+					6 => {
+						// OR
+						self.reg.a |= val;
+						self.reg.f.z = self.reg.a==0;
+						self.reg.f.n = false;
+						self.reg.f.h = false;
+						self.reg.f.c = false;
+					}
+					7 => { unimplemented!(); }
+					_ => { unreachable!(); }
+				}
+				return t
+			}
+
 			0x40..=0x75 | 0x77..=0x7F => {
 				//LD r,r
 				let from = op & 0x7;
@@ -460,7 +521,7 @@ impl Cpu {
 					5 => { v = self.reg.l; },
 					6 => { v = mem.read(self.reg.get_hl()); t = 8; },
 					7 => { v = self.reg.a; }
-					_ => { panic!(); }
+					_ => { unreachable!(); }
 				};
 				match to {
 					0 => { self.reg.b = v; t }
@@ -471,7 +532,7 @@ impl Cpu {
 					5 => { self.reg.l = v; t }
 					6 => { mem.write(self.reg.get_hl(), v); 8 }
 					7 => { self.reg.a = v; t }
-					_ => { panic!(); }
+					_ => { unreachable!(); }
 				}
 			}
 
@@ -480,8 +541,8 @@ impl Cpu {
 				match cb_op {
 					0x40..=0xFF => {
 						let h: u8 = (cb_op & 0xC0) >> 6; // type of bit op
-						let r: u8 = cb_op & 7;			 	// register
 						let b: u8 = (cb_op & 0x38) >> 3; // bit
+						let r: u8 = cb_op & 7;			 	// register
 						match h {
 							1 => {
 								// BIT
@@ -496,7 +557,7 @@ impl Cpu {
 									5 => { self.reg.f.z = !util::get_bit(self.reg.l, b); 8 }
 									6 => { self.reg.f.z = !util::get_bit(mem.read(self.reg.get_hl()), b); 16 }
 									7 => { self.reg.f.z = !util::get_bit(self.reg.a, b); 8 }
-									_ => { panic!(); }
+									_ => { unreachable!(); }
 								}
 							}
 							2 | 3 => {
@@ -511,7 +572,7 @@ impl Cpu {
 									5 => { self.reg.l = util::set_bit(self.reg.l, b, v); 8 }
 									6 => { let a = self.reg.get_hl(); mem.write(a, util::set_bit(mem.read(a), b, v)); 16 }
 									7 => { self.reg.a = util::set_bit(self.reg.a, b, v); 8 }
-									_ => { panic!(); }
+									_ => { unreachable!(); }
 								}
 							}
 							_ => { panic!(); }
