@@ -45,6 +45,25 @@ impl Cpu {
 		u16::from_be_bytes([l,h])
 	}
 
+	fn push_byte(&mut self, mem: &mut Memory, val: u8) {
+		self.reg.sp = self.reg.sp.wrapping_sub(1);
+		mem.write(self.reg.sp, val);
+	}
+	fn pop_byte(&mut self, mem: &Memory) -> u8 {
+		self.reg.sp = self.reg.sp.wrapping_add(1);
+		mem.read(self.reg.sp)
+	}
+	fn push_word(&mut self, mem: &mut Memory, val: u16) {
+		let b = val.to_be_bytes();
+		self.push_byte(mem, b[0]);
+		self.push_byte(mem, b[1]);
+	}
+	fn pop_word(&mut self, mem: &mut Memory) -> u16 {
+		let h = self.pop_byte(mem);
+		let l = self.pop_byte(mem);
+		u16::from_be_bytes([l,h])
+	}
+
 	pub fn step(&mut self, mem: &mut Memory) -> i8 {
 		let op = self.read_byte(mem);
 		self.exec(op, mem)
