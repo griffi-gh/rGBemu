@@ -85,29 +85,17 @@ impl Cpu {
 				4
 			}
 
-			// LD rr,u16
-
-			0x01 => {
-				//LD BC,u16
-				let v = self.read_word(mem);
-				self.reg.set_bc(v);
-				12
-			}
-			0x11 => {
-				//LD DE,u16
-				let v = self.read_word(mem);
-				self.reg.set_de(v);
-				12
-			}
-			0x21 => {
-				//LD HL,u16
-				let v = self.read_word(mem);
-				self.reg.set_hl(v);
-				12
-			}
-			0x31 => {
-				//LD SP,u16
-				self.reg.sp = self.read_word(mem);
+			0x01 | 0x11 | 0x21 | 0x31 => {
+				// LD rr,u16
+				let val = self.read_word(mem);
+				let reg = (op & 0xF0) >> 4;
+				match reg {
+					0 => { self.reg.set_bc(val); }
+					1 => { self.reg.set_de(val); }
+					2 => { self.reg.set_hl(val); }
+					3 => { self.reg.sp = val; }
+					_ => { unreachable!(); }
+				}
 				12
 			}
 
@@ -164,7 +152,6 @@ impl Cpu {
 			}
 
 			// LD r,u8
-
 			0x06 => {
 				//LD B,u8
 				self.reg.b = self.read_byte(mem);
@@ -217,49 +204,31 @@ impl Cpu {
 				12
 			}
 
-			// INC rr
+			// INC/DEC r16
 
-			0x03 => {
-				//INC BC
-				self.reg.set_bc(self.reg.get_bc().wrapping_add(1));
+			0x03 | 0x13 | 0x23 | 0x33 => {
+				// INC r16
+				let reg = (op & 0xF0) >> 4;
+				match reg {
+					0 => { self.reg.set_bc(self.reg.get_bc().wrapping_add(1)); }
+					1 => { self.reg.set_de(self.reg.get_de().wrapping_add(1)); }
+					2 => { self.reg.set_hl(self.reg.get_hl().wrapping_add(1)); }
+					3 => { self.reg.sp = self.reg.sp.wrapping_add(1); }
+					_ => { unreachable!(); }
+				}
 				8
 			}
-			0x13 => {
-				//INC DE
-				self.reg.set_de(self.reg.get_de().wrapping_add(1));
-				8
-			}
-			0x23 => {
-				//INC HL
-				self.reg.set_hl(self.reg.get_hl().wrapping_add(1));
-				8
-			}
-			0x33 => {
-				//INC SP
-				self.reg.sp = self.reg.sp.wrapping_add(1);
-				8
-			}
-
-			// DEC rr
-
-			0x0B => {
-				//DEC BC
-				self.reg.set_bc(self.reg.get_bc().wrapping_sub(1));
-				8
-			}
-			0x1B => {
-				//DEC DE
-				self.reg.set_de(self.reg.get_de().wrapping_sub(1));
-				8
-			}
-			0x2B => {
-				//DEC HL
-				self.reg.set_hl(self.reg.get_hl().wrapping_sub(1));
-				8
-			}
-			0x3B => {
-				//DEC SP
-				self.reg.sp = self.reg.sp.wrapping_sub(1);
+			
+			0x0B | 0x1B | 0x2B | 0x3B => {
+				// DEC r16
+				let reg = (op & 0xF0) >> 4;
+				match reg {
+					0 => { self.reg.set_bc(self.reg.get_bc().wrapping_sub(1)); }
+					1 => { self.reg.set_de(self.reg.get_de().wrapping_sub(1)); }
+					2 => { self.reg.set_hl(self.reg.get_hl().wrapping_sub(1)); }
+					3 => { self.reg.sp = self.reg.sp.wrapping_sub(1); }
+					_ => { unreachable!(); }
+				}
 				8
 			}
 
@@ -591,52 +560,32 @@ impl Cpu {
 				} else { 8 }
 			}
 			
-			// PUSH r16
-			0xC5 => {
-				//PUSH BC
-				self.push_word(mem, self.reg.get_bc());
-				16
-			}
-			0xD5 => {
-				//PUSH DE
-				self.push_word(mem, self.reg.get_de());
-				16
-			}
-			0xE5 => {
-				//PUSH HL
-				self.push_word(mem, self.reg.get_hl());
-				16
-			}
-			0xF5 => {
-				//PUSH AF
-				self.push_word(mem, self.reg.get_af());
+			// PUSH/POP r16
+
+			0xC5 | 0xD5 | 0xE5 | 0xF5 => {
+				// PUSH r16
+				let reg = ((op & 0xF0) >> 4) - 0xC;
+				match reg {
+					0 => { self.push_word(mem, self.reg.get_bc()); }
+					1 => { self.push_word(mem, self.reg.get_de()); }
+					2 => { self.push_word(mem, self.reg.get_hl()); }
+					3 => { self.push_word(mem, self.reg.get_af()); }
+					_ => { unreachable!(); }
+				}
 				16
 			}
 
-			//POP r16
-
-			0xC1 => {
-				//POP BC
-				let v = self.pop_word(mem);
-				self.reg.set_bc(v);
-				12
-			}
-			0xD1 => {
-				//POP DE
-				let v = self.pop_word(mem);
-				self.reg.set_de(v);
-				12
-			}
-			0xE1 => {
-				//POP HL
-				let v = self.pop_word(mem);
-				self.reg.set_hl(v);
-				12
-			}
-			0xF1 => {
-				//POP AF
-				let v = self.pop_word(mem);
-				self.reg.set_af(v);
+			0xC1 | 0xD1 | 0xE1 | 0xF1 => {
+				//POP r16
+				let val = self.pop_word(mem);
+				let reg = ((op & 0xF0) >> 4) - 0xC;
+				match reg {
+					0 => { self.reg.set_bc(val); }
+					1 => { self.reg.set_de(val); }
+					2 => { self.reg.set_hl(val); }
+					3 => { self.reg.set_af(val); }
+					_ => { unreachable!(); }
+				}
 				12
 			}
 
@@ -770,7 +719,7 @@ impl Cpu {
 									_ => { unreachable!(); }
 								}
 							}
-							_ => { panic!(); }
+							_ => { unreachable!(); }
 						}
 					}
 
