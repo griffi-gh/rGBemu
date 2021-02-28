@@ -140,7 +140,7 @@ impl Cpu {
 
 			0x0A => {
 				//LD A,(BC)
-				self.reg.a = mem.read(self.reg.get_hl());
+				self.reg.a = mem.read(self.reg.get_bc());
 				8
 			}
 			0x1A => {
@@ -208,12 +208,12 @@ impl Cpu {
 
 			0xE0 => {
 				//LD (FF00+u8),A
-				mem.write(0xFF00 + (self.read_byte(mem) as u16), self.reg.a);
+				mem.write(0xFF00 + u16::from(self.read_byte(mem)), self.reg.a);
 				12
 			}
 			0xF0 => {
 				//LD A,(FF00+u8)
-				self.reg.a = mem.read(0xFF00 + (self.read_byte(mem) as u16));
+				self.reg.a = mem.read(0xFF00 + u16::from(self.read_byte(mem)));
 				12
 			}
 
@@ -737,7 +737,7 @@ impl Cpu {
 					0x40..=0xFF => {
 						let h: u8 = (cb_op & 0xC0) >> 6; // type of bit op
 						let b: u8 = (cb_op & 0x38) >> 3; // bit
-						let r: u8 = cb_op & 7;			 	// register
+						let r: u8 = cb_op & 7;			 // register
 						match h {
 							1 => {
 								// BIT
