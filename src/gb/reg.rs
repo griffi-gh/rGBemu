@@ -86,4 +86,51 @@ impl Registers {
 	pub fn get_hl(&self) -> u16 {
 		u16::from_be_bytes([self.h, self.l])
 	}
+
+	pub fn set_by_id(&mut self, id: u8, v: u8) -> bool{
+		match id {
+			0 => { self.b = v; true }
+			1 => { self.c = v; true }
+			2 => { self.d = v; true }
+			3 => { self.e = v; true }
+			4 => { self.h = v; true }
+			5 => { self.l = v; true }
+			6 => { false }
+			7 => { self.a = v; true }
+			_ => { false }
+		}
+	}
+
+	pub fn get_by_id(&self, id: u8) -> Option<u8> {
+		match id {
+			0 => { Some(self.b) }
+			1 => { Some(self.c) }
+			2 => { Some(self.d) }
+			3 => { Some(self.e) }
+			4 => { Some(self.h) }
+			5 => { Some(self.l) }
+			6 => { None }
+			7 => { Some(self.a) }
+			_ => { None }
+		}
+	}
+
+	pub fn set_union_by_id(&mut self, id: u8, v: u16) -> bool {
+		match id {
+			0 => { self.set_bc(v); true }
+			1 => { self.set_de(v); true }
+			2 => { self.set_hl(v); true }
+			3 => { self.set_af(v); true }
+			_ => { false }
+		}
+	}
+	pub fn get_union_by_id(&self, id: u8) -> Option<u16> {
+		match id {
+			0 => { Some(self.get_bc()) }
+			1 => { Some(self.get_de()) }
+			2 => { Some(self.get_hl()) }
+			3 => { Some(self.get_af()) }
+			_ => { None }
+		}
+	}
 }

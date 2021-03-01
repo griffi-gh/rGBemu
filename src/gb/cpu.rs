@@ -293,63 +293,22 @@ impl Cpu {
 			}
 
 			// DEC u8
-			
-			0x05 => {
-				//DEC B
-				let v: u8 = self.reg.b.wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				self.reg.b = v;
-				4
-			}
-			0x0D => {
-				//DEC C
-				let v: u8 = self.reg.c.wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				self.reg.c = v;
-				4
-			}
-			0x15 => {
-				//DEC D
-				let v: u8 = self.reg.d.wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				self.reg.d = v;
-				4
-			}
-			0x1D => {
-				//DEC E
-				let v: u8 = self.reg.e.wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				self.reg.e = v;
-				4
-			}
-			0x25 => {
-				//DEC H
-				let v: u8 = self.reg.h.wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				self.reg.h = v;
-				4
-			}
-			0x2D => {
-				//DEC L
-				let v: u8 = self.reg.l.wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				self.reg.l = v;
-				4
-			}
-			0x35 => {
-				//DEC (HL)
-				let a: u16 = self.reg.get_hl();
-				let v: u8 = mem.read(a).wrapping_sub(1);
-				self.set_flags_sub(v, 1);
-				mem.write(a, v);
-				12
-			}
-			0x3D => {
-				//DEC A
-				let v: u8 = self.reg.l.wrapping_sub(1);
-				self.set_flags_sub(v,1);
-				self.reg.a = v;
-				4
+			0x05 | 0x0D | 0x15 | 0x1D | 0x25 | 0x2D | 0x35 | 0x3D => {
+				let t;
+				let ov;
+				let reg = (op >> 3) & 0x7;
+				if reg==6 {
+					t = 8;
+					let a = self.reg.get_hl();
+					ov = mem.read(a);
+					mem.write(a, ov.wrapping_sub(1));
+				} else {
+					t = 4;
+					ov = self.reg.get_by_id(reg).unwrap();
+					self.reg.set_by_id(reg, ov.wrapping_sub(1));
+				}
+				self.set_flags_sub(ov, 1);
+				t
 			}
 
 			// (OP) A, u8
@@ -404,6 +363,11 @@ impl Cpu {
 				self.reg.pc = self.read_word(mem);
 				16
 			}
+			0xE9 => {
+				//JP HL
+				self.reg.pc = self.reg.get_hl();
+				4
+			}
 			0xC2 => {
 				//JP NZ,u16
 				let to = self.read_word(mem);
@@ -435,11 +399,6 @@ impl Cpu {
 					self.reg.pc = to;
 					24
 				} else { 12 }
-			}
-			0xE9 => {
-				//JP HL
-				self.reg.pc = self.reg.get_hl();
-				4
 			}
 
 			// JR
@@ -565,27 +524,16 @@ impl Cpu {
 			0xC5 | 0xD5 | 0xE5 | 0xF5 => {
 				// PUSH r16
 				let reg = ((op & 0xF0) >> 4) - 0xC;
-				match reg {
-					0 => { self.push_word(mem, self.reg.get_bc()); }
-					1 => { self.push_word(mem, self.reg.get_de()); }
-					2 => { self.push_word(mem, self.reg.get_hl()); }
-					3 => { self.push_word(mem, self.reg.get_af()); }
-					_ => { unreachable!(); }
-				}
+				let val = self.reg.get_union_by_id(reg).unwrap();
+				self.push_word(mem, val);
 				16
 			}
 
 			0xC1 | 0xD1 | 0xE1 | 0xF1 => {
 				//POP r16
-				let val = self.pop_word(mem);
 				let reg = ((op & 0xF0) >> 4) - 0xC;
-				match reg {
-					0 => { self.reg.set_bc(val); }
-					1 => { self.reg.set_de(val); }
-					2 => { self.reg.set_hl(val); }
-					3 => { self.reg.set_af(val); }
-					_ => { unreachable!(); }
-				}
+				let val = self.pop_word(mem);
+				self.reg.set_union_by_id(reg, val);
 				12
 			}
 
@@ -595,15 +543,8 @@ impl Cpu {
 				let aop = (op >> 3) & 0x7;
 				let mut t = 4;
 				let val = match reg {
-					0 => self.reg.b,
-					1 => self.reg.c,
-					2 => self.reg.d,
-					3 => self.reg.e,
-					4 => self.reg.h,
-					5 => self.reg.l,
-					6 => { t = 8; mem.read(self.reg.get_hl()) },
-					7 => self.reg.a,
-					_ => { unreachable!(); }
+					6 => { t = 8; mem.read(self.reg.get_hl()) }
+					_ => { self.reg.get_by_id(reg).unwrap() }
 				};
 				match aop {
 					0 => {
@@ -652,31 +593,16 @@ impl Cpu {
 
 			0x40..=0x75 | 0x77..=0x7F => {
 				//LD r,r
+				let t;
 				let from = op & 0x7;
 				let to = (op >> 3) & 0x7;
-				let mut t = 4;
-				let v: u8;
-				match from {
-					0 => { v = self.reg.b; },
-					1 => { v = self.reg.c; },
-					2 => { v = self.reg.d; },
-					3 => { v = self.reg.e; },
-					4 => { v = self.reg.h; },
-					5 => { v = self.reg.l; },
-					6 => { v = mem.read(self.reg.get_hl()); t = 8; },
-					7 => { v = self.reg.a; }
-					_ => { unreachable!(); }
+				let v: u8 = match from {
+					6 => { t = 8; mem.read(self.reg.get_hl()) },
+					_ => { t = 4; self.reg.get_by_id(from).unwrap() }
 				};
 				match to {
-					0 => { self.reg.b = v; t }
-					1 => { self.reg.c = v; t }
-					2 => { self.reg.d = v; t }
-					3 => { self.reg.e = v; t }
-					4 => { self.reg.h = v; t }
-					5 => { self.reg.l = v; t }
 					6 => { mem.write(self.reg.get_hl(), v); 8 }
-					7 => { self.reg.a = v; t }
-					_ => { unreachable!(); }
+					_ => { self.reg.set_by_id(to, v); t }
 				}
 			}
 
@@ -692,31 +618,26 @@ impl Cpu {
 								// BIT
 								self.reg.f.n = false;
 								self.reg.f.h = true;
-								match r {
-									0 => { self.reg.f.z = !util::get_bit(self.reg.b, b); 8 }
-									1 => { self.reg.f.z = !util::get_bit(self.reg.c, b); 8 }
-									2 => { self.reg.f.z = !util::get_bit(self.reg.d, b); 8 }
-									3 => { self.reg.f.z = !util::get_bit(self.reg.e, b); 8 }
-									4 => { self.reg.f.z = !util::get_bit(self.reg.h, b); 8 }
-									5 => { self.reg.f.z = !util::get_bit(self.reg.l, b); 8 }
-									6 => { self.reg.f.z = !util::get_bit(mem.read(self.reg.get_hl()), b); 16 }
-									7 => { self.reg.f.z = !util::get_bit(self.reg.a, b); 8 }
-									_ => { unreachable!(); }
+								if r==6 {
+									self.reg.f.z = !util::get_bit(mem.read(self.reg.get_hl()), b);
+									16
+								} else {
+									let v = self.reg.get_by_id(r).unwrap();
+									self.reg.f.z = !util::get_bit(v, b);
+									8
 								}
 							}
 							2 | 3 => {
 								//RES, SET
 								let v = h==3;
-								match r {
-									0 => { self.reg.b = util::set_bit(self.reg.b, b, v); 8 }
-									1 => { self.reg.c = util::set_bit(self.reg.c, b, v); 8 }
-									2 => { self.reg.d = util::set_bit(self.reg.d, b, v); 8 }
-									3 => { self.reg.e = util::set_bit(self.reg.e, b, v); 8 }
-									4 => { self.reg.h = util::set_bit(self.reg.h, b, v); 8 }
-									5 => { self.reg.l = util::set_bit(self.reg.l, b, v); 8 }
-									6 => { let a = self.reg.get_hl(); mem.write(a, util::set_bit(mem.read(a), b, v)); 16 }
-									7 => { self.reg.a = util::set_bit(self.reg.a, b, v); 8 }
-									_ => { unreachable!(); }
+								if r==6 {
+									let a = self.reg.get_hl();
+									mem.write(a, util::set_bit(mem.read(a), b, v));
+									16
+								} else {
+									let rv = self.reg.get_by_id(r).unwrap();
+									self.reg.set_by_id(r, util::set_bit(rv, b, v));
+									8
 								}
 							}
 							_ => { unreachable!(); }
